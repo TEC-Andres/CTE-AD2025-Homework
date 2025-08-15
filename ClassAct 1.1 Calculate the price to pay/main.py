@@ -26,7 +26,7 @@ class Choose():
         self.chosen_oranges = []
         pass
 
-    def choose_oranges_interactive(self, orange):
+    def choose_oranges(self, orange):
         while True:
             if len(orange)-len(self.chosen_oranges) == 0:
                 print("No more oranges available to choose.")
@@ -58,5 +58,5 @@ class Choose():
 if __name__ == "__main__":
     oranges = Oranges()
     chooser = Choose()
-    chooser.choose_oranges_interactive(oranges)
+    chooser.choose_oranges(oranges)
 
