@@ -23,32 +23,32 @@ class Oranges(dict):
 
 class Choose():
     def __init__(self):
+        self.chosen_oranges = []
         pass
 
     def choose_oranges_interactive(self, orange):
-        chosen_oranges = []
         while True:
-            if len(orange)-len(chosen_oranges) == 0:
+            if len(orange)-len(self.chosen_oranges) == 0:
                 print("No more oranges available to choose.")
                 input("Continue")
                 break
             os.system('cls')
-            print(f"Press Enter to choose an orange. Theres currently {len(orange)-len(chosen_oranges)} oranges available")
+            print(f"Press Enter to choose an orange. Theres currently {len(orange)-len(self.chosen_oranges)} oranges available")
             input(">>> ")
             chosen = random.choice(list(orange.items()))
             print(f"You have chosed an orange that weights {chosen[1]} grams!")
-            chosen_oranges.append(chosen)
+            self.chosen_oranges.append(chosen)
 
             if input("Do you want to choose another orange? (y/[Enter]=yes, n=no): ").lower() not in ["y", "yes", ""]:
                 break
         
         # Subtotal Logic
-        oranges_weight = int(sum(item[1] for item in chosen_oranges))
+        oranges_weight = int(sum(item[1] for item in self.chosen_oranges))
         subtotal = oranges_weight * cost_per_kilo / 1000
 
         print("Thank you for choosing oranges!")
         print("Here are the oranges you have chosen:")
-        for orange_item in chosen_oranges:
+        for orange_item in self.chosen_oranges:
             print(f"- {orange_item[0]}: {orange_item[1]} grams")
         print(f"Total orange weight: {oranges_weight} grams")
         print(f"Subtotal: {subtotal} pesos")
