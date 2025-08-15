@@ -25,12 +25,6 @@ class Choose():
     def __init__(self):
         pass
 
-    def choose_oranges(self, num):
-        if num > len(self):
-            print(f"Not enough oranges to choose {num}.")
-            return None
-        return dict(random.sample(list(self.items()), num))
-
     def choose_oranges_interactive(self, orange):
         chosen_oranges = []
         while True:
