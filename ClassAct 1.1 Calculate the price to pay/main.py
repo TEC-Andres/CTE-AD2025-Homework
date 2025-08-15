@@ -46,7 +46,6 @@ class Choose():
         oranges_weight = int(sum(item[1] for item in self.chosen_oranges))
         subtotal = oranges_weight * cost_per_kilo / 1000
 
-        print("Thank you for choosing oranges!")
         print("Here are the oranges you have chosen:")
         for orange_item in self.chosen_oranges:
             print(f"- {orange_item[0]}: {orange_item[1]} grams")
