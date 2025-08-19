@@ -27,7 +27,6 @@ decimal.getcontext().prec = precision+1
 vix = decimal.Decimal(vi * math.cos(math.radians(angle)))
 viy = decimal.Decimal(vi * math.sin(math.radians(angle)))
 
-
 angle_rad = math.radians(angle)
 g_decimal = decimal.Decimal(g)
 T = (2 * viy) / g_decimal
