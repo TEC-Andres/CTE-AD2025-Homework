@@ -4,12 +4,12 @@
 #
 #       Copyright (C) Tecnológico de Monterrey
 #
-#       File: main.py
+#       File: part1_exc3.py
 #
 #       Created:                08/19/2025
 #       Last Modified:          08/19/2025
 '''
-# Inport math module
+# Import math module
 import math
 
 # Get the legs lengths
