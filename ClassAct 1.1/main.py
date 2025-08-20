@@ -18,7 +18,7 @@ class Oranges(dict):
     def __init__(self):
         num_oranges = random.randint(20, 50)
         for i in range(num_oranges):
-            self[f"orange_{i+1}"] = random.randint(100, 300)
+            self[f"orange {i+1}"] = random.randint(100, 300)
         pass
 
 class Choose():
