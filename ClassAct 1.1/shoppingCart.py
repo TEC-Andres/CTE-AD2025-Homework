@@ -1,5 +1,5 @@
 '''
-#       Sesion 1: Programs that require calculations
+#       Sesion 1 (CHALLENGE): Programs that require calculations
 #       Andrés Rodríguez Cantú ─ A01287002
 #
 #       Copyright (C) Tecnológico de Monterrey

@@ -1,5 +1,5 @@
 '''
-#       Sesion 1: Introductory Activity
+#       Sesion 1 (CHALLENGE): Introductory Activity
 #       Andrés Rodríguez Cantú ─ A01287002
 #
 #       Copyright (C) Tecnológico de Monterrey
