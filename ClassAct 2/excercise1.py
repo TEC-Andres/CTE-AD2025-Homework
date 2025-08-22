@@ -10,6 +10,7 @@
 #       Created:                08/22/2025
 #       Last Modified:          08/22/2025
 '''
+# Inputs
 khw = int(input("Enter the number of kWh consumed: "))
 senior_test = input("Are you a senior? (yes/no): ").strip().lower()
 fixed_charge = float(input("Enter the fixed charge: "))
