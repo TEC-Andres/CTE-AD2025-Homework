@@ -26,7 +26,7 @@ if pizza_type == 1:
 else:
     print("Non-Vegetarian pizza ingredients:\n\t1- Pepperoni\n\t2- Ham.\n\t3- Salmon")
     ingredient = int(input("Choose your ingredients: "))
-    print(f"Non-Vegetarian pizza with mozzarella, tomato, and {ingredient}.")
+    print("Non-Vegetarian pizza with mozzarella, tomato, and", end=" ")
     if ingredient == 1:
         print("Pepperoni.")
     elif ingredient == 2:
