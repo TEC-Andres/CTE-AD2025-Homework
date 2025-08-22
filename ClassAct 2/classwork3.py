@@ -9,6 +9,7 @@
 #       Created:                08/22/2025
 #       Last Modified:          08/22/2025
 '''
+# Check whether the traffic light is green or not.
 traffic_light = "green"
 
 if traffic_light == "green":
