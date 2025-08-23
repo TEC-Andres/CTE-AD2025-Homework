@@ -1,5 +1,5 @@
 '''
-#       Sesion 2: Introductory Activity
+#       Sesion 2: Programs that make decisions
 #       Andrés Rodríguez Cantú ─ A01287002
 #
 #       Copyright (C) Tecnológico de Monterrey
@@ -8,7 +8,7 @@
 #       Title: Progressive Electricity Billing (tiers, surcharges, caps)
 #
 #       Created:                08/22/2025
-#       Last Modified:          08/22/2025
+#       Last Modified:          08/23/2025
 '''
 # Inputs
 khw = int(input("Enter the number of kWh consumed: "))

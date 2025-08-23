@@ -1,5 +1,5 @@
 '''
-#       Sesion 2: Introductory Activity
+#       Sesion 2: Programs that make decisions
 #       Andrés Rodríguez Cantú ─ A01287002
 #
 #       Copyright (C) Tecnológico de Monterrey
@@ -7,7 +7,7 @@
 #       File: classwork6.py
 #
 #       Created:                08/22/2025
-#       Last Modified:          08/22/2025
+#       Last Modified:          08/23/2025
 '''
 # Menu presentation
 print("Welcome to Bella Napoli Pizzeria")

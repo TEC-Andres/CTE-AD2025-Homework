@@ -1,5 +1,5 @@
 '''
-#       Sesion 2: Introductory Activity
+#       Sesion 2: Programs that make decisions
 #       Andrés Rodríguez Cantú ─ A01287002
 #
 #       Copyright (C) Tecnológico de Monterrey
