@@ -21,7 +21,7 @@ fixed_charge = float(input("Enter the fixed charge: "))
 # Calculate energy charge
 if khw <= 100:
     energy_charge = khw * 0.12
-elif khw <= 300:
+elif 101 <= khw <= 300:
     energy_charge = (100 * 0.12) + ((khw - 100) * 0.15)
 else:
     energy_charge = (100 * 0.12) + (200 * 0.15) + ((khw - 300) * 0.2)
