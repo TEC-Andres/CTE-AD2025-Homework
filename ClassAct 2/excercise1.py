@@ -10,11 +10,13 @@
 #       Created:                08/22/2025
 #       Last Modified:          08/23/2025
 '''
+# Constants
+minimum_bill_after_everything = 50
+
 # Inputs
 khw = int(input("Enter the number of kWh consumed: "))
 senior_test = input("Are you a senior? (yes/no): ").strip().lower()
 fixed_charge = float(input("Enter the fixed charge: "))
-minimum_bill_after_everything = 50
 
 # Calculate energy charge
 if khw <= 100:
