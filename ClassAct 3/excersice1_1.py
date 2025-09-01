@@ -1,3 +1,15 @@
+'''
+#       Sesion 3: Functions with Decisions
+#       Andrés Rodríguez Cantú ─ A01287002
+#
+#       Copyright (C) Tecnológico de Monterrey
+#
+#       File: exercise1_1.py
+#       Title: Progressive Utility Bill (tiers, surcharge, caps)
+#
+#       Created:                08/22/2025
+#       Last Modified:          08/23/2025
+'''
 # From act 2
 def print_utility_bill(kwh, is_senior, fixed_fee):
     # Constants
