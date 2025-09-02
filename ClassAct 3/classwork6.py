@@ -10,7 +10,7 @@
 #       Last Modified:          08/29/2025
 '''
 def getName(name):
-    return name.upper(), name.title(), '. '.join([word[0].upper() for word in name.split() if word]) + '.'    
+    return name.upper(), name.title(), '. '.join([word[0].upper() for word in name.split() if word]) + '.'
 
 name = input("Enter your name: ")
 print('\n'.join(getName(name)))
