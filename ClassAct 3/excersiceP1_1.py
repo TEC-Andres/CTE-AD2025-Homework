@@ -8,7 +8,7 @@
 #       Title: Progressive Utility Bill (tiers, surcharge, caps)
 #
 #       Created:                08/31/2025
-#       Last Modified:          08/31/2025
+#       Last Modified:          09/02/2025
 '''
 # From act 2
 def print_utility_bill(kwh, is_senior, fixed_fee):
@@ -54,4 +54,7 @@ def print_utility_bill(kwh, is_senior, fixed_fee):
 
 # Function execution
 if __name__ == "__main__":
-    print_utility_bill(320, "yes", 12)
+    a = int(input("Enter kWh used: "))
+    b = input("Are you a senior citizen? (yes/no): ")
+    c = float(input("Enter fixed fee: "))
+    print_utility_bill(a, b, c)

@@ -8,7 +8,7 @@
 #       Title: Progressive Utility Bill (tiers, surcharge, caps)
 #
 #       Created:                08/31/2025
-#       Last Modified:          08/31/2025
+#       Last Modified:          09/02/2025
 '''
 def show_time_slot(day_code, hour_24):
     # Day list
@@ -26,4 +26,6 @@ def show_time_slot(day_code, hour_24):
 
 # Function execution
 if __name__ == "__main__":
-    show_time_slot("SAT", 10)
+    a = input("Enter day code (e.g., MON): ")
+    b = int(input("Enter hour (24-hour format): "))
+    show_time_slot(a, b)

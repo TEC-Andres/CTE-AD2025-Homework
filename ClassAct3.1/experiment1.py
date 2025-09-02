@@ -9,7 +9,7 @@ def chudnovsky_pi():
     X = 1
     L = 13591409
     S = L
-    for i in range(1, 100000):
+    for i in range(1, 1000):
         M = (M * (K ** 3 - 16 * K)) // (i ** 3)
         L += 545140134
         X *= -262537412640768000
