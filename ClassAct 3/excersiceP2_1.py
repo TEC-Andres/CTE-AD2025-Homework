@@ -8,7 +8,7 @@
 #       Title: Progressive Utility Bill (tiers, surcharge, caps)
 #
 #       Created:                08/31/2025
-#       Last Modified:          08/31/2025
+#       Last Modified:          09/02/2025
 '''
 def tax_rate(subtotal, state):
     if state == "TX":
@@ -20,7 +20,9 @@ def tax_rate(subtotal, state):
     return float(subtotal)
 
 def main() -> None:
-    print(f"Tax: {tax_rate(120, 'TX'):.2f}")
+    a = float(input("Enter subtotal: "))
+    b = input("Enter state (TX, CA, or other): ")
+    print(f"Tax: {tax_rate(a, b):.2f}")
 
 if __name__ == "__main__":
     main()
