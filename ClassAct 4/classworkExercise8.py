@@ -1,3 +1,14 @@
+'''
+#       Sesion 4: For and while loops
+#       Andrés Rodríguez Cantú ─ A01287002
+#
+#       Copyright (C) Tecnológico de Monterrey
+#
+#       File: classworkExercise8.py
+#
+#       Created:                09/05/2025
+#       Last Modified:          09/05/2025
+'''
 # O(n^2) solution
 def is_prime(num):
     # Base case for 2
