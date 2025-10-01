@@ -1,5 +1,4 @@
 def print_counter(start, stop, step):
-    count = 0
     print("Sequence: ", end='')
     for i in range(start, stop, step):
         print(f"{i}", end=' ')
