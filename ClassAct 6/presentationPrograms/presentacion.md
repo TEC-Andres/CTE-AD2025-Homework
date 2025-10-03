@@ -26,10 +26,8 @@ Matrix multiplication is a binary operation that combines two matrices to produc
 
 Here is a video animation demonstrating matrix multiplication:
 
-<video width="640" height="360" controls>
-  <source src="./_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+
+<iframe width="640" height="360" src="./_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.mp4" frameborder="0" allowfullscreen></iframe>
 
 ```python
 def matrix_multiply(A, B):
@@ -52,10 +50,8 @@ Using the strassen matrix multiplication algorithm in combination with `ctypes`,
 
 ### Transposition
 Matrix transposition is an operation that creates a new matrix by switching the rows and columns of an original matrix
-<video width="640" height="360" controls>
-  <source src="./_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+
+<iframe width="640" height="360" src="./_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4" frameborder="0" allowfullscreen></iframe>
 
 ```python
 def transpose_matrix(matrix):
