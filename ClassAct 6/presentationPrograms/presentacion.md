@@ -53,10 +53,7 @@ Matrix transposition is an operation that creates a new matrix by switching the 
 
 Here is a video animation demonstrating matrix transposition:
 
-<video controls width="640" height="360">
-    <source src="https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct%206/presentationPrograms/_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-</video>
+![Matrix Transposition Animation](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct%206/presentationPrograms/_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4)
 
 
 ```python
