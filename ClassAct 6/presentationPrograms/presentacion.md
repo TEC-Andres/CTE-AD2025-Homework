@@ -27,7 +27,7 @@ Matrix multiplication is a binary operation that combines two matrices to produc
 Here is a video animation demonstrating matrix multiplication:
 
 
-<iframe width="640" height="360" src="./_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.mp4" frameborder="0" allowfullscreen></iframe>
+![Matrix Multiplication Video](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct%206/presentationPrograms/_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.mp4)
 
 ```python
 def matrix_multiply(A, B):
