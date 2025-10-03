@@ -1,2 +1,4 @@
 _notes/
 _experimentos/
+.vscode/
+__pycache__/
