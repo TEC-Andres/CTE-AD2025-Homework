@@ -51,7 +51,10 @@ Using the strassen matrix multiplication algorithm in combination with `ctypes`,
 ### Transposition
 Matrix transposition is an operation that creates a new matrix by switching the rows and columns of an original matrix
 
-<iframe width="640" height="360" src="./_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4" frameborder="0" allowfullscreen></iframe>
+Here is a video animation demonstrating matrix transposition:
+
+![Matrix Transposition Animation](https://github.com/your-username/your-repo/raw/main/_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.mp4)
+
 
 ```python
 def transpose_matrix(matrix):
