@@ -65,7 +65,8 @@ if __name__ == "__main__":
         ["Alice", 24],
         ["Bob", 30],
         ["Charlie", 29],
-        ["Diana", 22]
+        ["Diana", 22],
+        ["Andres", 18]
     ]
     df = DataFrame(data, ["Name", "Age"])
     print("DataFrame with auto-generated ID column:")

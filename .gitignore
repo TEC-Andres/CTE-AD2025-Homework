@@ -2,3 +2,5 @@ _notes/
 _experimentos/
 .vscode/
 __pycache__/
+!frame[0-9][0-9][0-9][0-9].png
+!frame[0-9]*.png

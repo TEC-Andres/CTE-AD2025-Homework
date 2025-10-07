@@ -45,38 +45,35 @@ extern "C" {
         int newSize = n / 2;
         int quadrantSize = newSize * newSize;
 
-        // Allocate memory for submatrices and intermediate results
-        double* A11 = new double[quadrantSize];
-        double* A12 = new double[quadrantSize];
-        double* A21 = new double[quadrantSize];
-        double* A22 = new double[quadrantSize];
-        
-        double* B11 = new double[quadrantSize];
-        double* B12 = new double[quadrantSize];
-        double* B21 = new double[quadrantSize];
-        double* B22 = new double[quadrantSize];
-        
-        double* M1 = new double[quadrantSize];
-        double* M2 = new double[quadrantSize];
-        double* M3 = new double[quadrantSize];
-        double* M4 = new double[quadrantSize];
-        double* M5 = new double[quadrantSize];
-        double* M6 = new double[quadrantSize];
-        double* M7 = new double[quadrantSize];
-        
-        double* temp1 = new double[quadrantSize];
-        double* temp2 = new double[quadrantSize];
+        // Use stack memory via std::vector
+        std::vector<double> A11(quadrantSize);
+        std::vector<double> A12(quadrantSize);
+        std::vector<double> A21(quadrantSize);
+        std::vector<double> A22(quadrantSize);
+        std::vector<double> B11(quadrantSize);
+        std::vector<double> B12(quadrantSize);
+        std::vector<double> B21(quadrantSize);
+        std::vector<double> B22(quadrantSize);
+        std::vector<double> M1(quadrantSize);
+        std::vector<double> M2(quadrantSize);
+        std::vector<double> M3(quadrantSize);
+        std::vector<double> M4(quadrantSize);
+        std::vector<double> M5(quadrantSize);
+        std::vector<double> M6(quadrantSize);
+        std::vector<double> M7(quadrantSize);
+        std::vector<double> temp1(quadrantSize);
+        std::vector<double> temp2(quadrantSize);
 
         // Divide matrices into quadrants
         for (int i = 0; i < newSize; i++) {
             for (int j = 0; j < newSize; j++) {
                 int idx = i * newSize + j;
-                
+
                 A11[idx] = A[i * n + j];
                 A12[idx] = A[i * n + j + newSize];
                 A21[idx] = A[(i + newSize) * n + j];
                 A22[idx] = A[(i + newSize) * n + j + newSize];
-                
+
                 B11[idx] = B[i * n + j];
                 B12[idx] = B[i * n + j + newSize];
                 B21[idx] = B[(i + newSize) * n + j];
@@ -85,63 +82,51 @@ extern "C" {
         }
 
         // Calculate M1 = (A11 + A22) * (B11 + B22)
-        addMatrix(A11, A22, temp1, newSize);
-        addMatrix(B11, B22, temp2, newSize);
-        strassenMultiply(temp1, temp2, M1, newSize);
+        addMatrix(A11.data(), A22.data(), temp1.data(), newSize);
+        addMatrix(B11.data(), B22.data(), temp2.data(), newSize);
+        strassenMultiply(temp1.data(), temp2.data(), M1.data(), newSize);
 
         // Calculate M2 = (A21 + A22) * B11
-        addMatrix(A21, A22, temp1, newSize);
-        strassenMultiply(temp1, B11, M2, newSize);
+        addMatrix(A21.data(), A22.data(), temp1.data(), newSize);
+        strassenMultiply(temp1.data(), B11.data(), M2.data(), newSize);
 
         // Calculate M3 = A11 * (B12 - B22)
-        subtractMatrix(B12, B22, temp2, newSize);
-        strassenMultiply(A11, temp2, M3, newSize);
+        subtractMatrix(B12.data(), B22.data(), temp2.data(), newSize);
+        strassenMultiply(A11.data(), temp2.data(), M3.data(), newSize);
 
         // Calculate M4 = A22 * (B21 - B11)
-        subtractMatrix(B21, B11, temp2, newSize);
-        strassenMultiply(A22, temp2, M4, newSize);
+        subtractMatrix(B21.data(), B11.data(), temp2.data(), newSize);
+        strassenMultiply(A22.data(), temp2.data(), M4.data(), newSize);
 
         // Calculate M5 = (A11 + A12) * B22
-        addMatrix(A11, A12, temp1, newSize);
-        strassenMultiply(temp1, B22, M5, newSize);
+        addMatrix(A11.data(), A12.data(), temp1.data(), newSize);
+        strassenMultiply(temp1.data(), B22.data(), M5.data(), newSize);
 
         // Calculate M6 = (A21 - A11) * (B11 + B12)
-        subtractMatrix(A21, A11, temp1, newSize);
-        addMatrix(B11, B12, temp2, newSize);
-        strassenMultiply(temp1, temp2, M6, newSize);
+        subtractMatrix(A21.data(), A11.data(), temp1.data(), newSize);
+        addMatrix(B11.data(), B12.data(), temp2.data(), newSize);
+        strassenMultiply(temp1.data(), temp2.data(), M6.data(), newSize);
 
         // Calculate M7 = (A12 - A22) * (B21 + B22)
-        subtractMatrix(A12, A22, temp1, newSize);
-        addMatrix(B21, B22, temp2, newSize);
-        strassenMultiply(temp1, temp2, M7, newSize);
+        subtractMatrix(A12.data(), A22.data(), temp1.data(), newSize);
+        addMatrix(B21.data(), B22.data(), temp2.data(), newSize);
+        strassenMultiply(temp1.data(), temp2.data(), M7.data(), newSize);
 
         // Calculate result quadrants
-        // C11 = M1 + M4 - M5 + M7
-        // C12 = M3 + M5
-        // C21 = M2 + M4
-        // C22 = M1 - M2 + M3 + M6
-
         for (int i = 0; i < newSize; i++) {
             for (int j = 0; j < newSize; j++) {
                 int idx = i * newSize + j;
-                
+
                 C[i * n + j] = M1[idx] + M4[idx] - M5[idx] + M7[idx];
                 C[i * n + j + newSize] = M3[idx] + M5[idx];
                 C[(i + newSize) * n + j] = M2[idx] + M4[idx];
                 C[(i + newSize) * n + j + newSize] = M1[idx] - M2[idx] + M3[idx] + M6[idx];
             }
         }
-
-        // Free allocated memory
-        delete[] A11; delete[] A12; delete[] A21; delete[] A22;
-        delete[] B11; delete[] B12; delete[] B21; delete[] B22;
-        delete[] M1; delete[] M2; delete[] M3; delete[] M4;
-        delete[] M5; delete[] M6; delete[] M7;
-        delete[] temp1; delete[] temp2;
     }
 
     // Main function to be called from Python
     void strassen(double* A, double* B, double* C, int n) {
         strassenMultiply(A, B, C, n);
     }
-}   
+}
