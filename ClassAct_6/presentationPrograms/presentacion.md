@@ -27,7 +27,7 @@ Matrix multiplication is a binary operation that combines two matrices to produc
 Here is a video animation demonstrating matrix multiplication:
 
 
-![Matrix Multiplication Video](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct%206/presentationPrograms/_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.gif)
+![Matrix Multiplication Video](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct_6/presentationPrograms/_animations/media/videos/matrixMultiplication/1080p60/MatrixMultiplicationAnimation.gif)
 
 ```python
 def matrix_multiply(A, B):
@@ -53,7 +53,7 @@ Matrix transposition is an operation that creates a new matrix by switching the 
 
 Here is a video animation demonstrating matrix transposition:
 
-![Matrix Transposition Animation](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct%206/presentationPrograms/_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.gif)
+![Matrix Transposition Animation](https://github.com/TEC-Andres/CTE-AD2025-Homework/raw/main/ClassAct_6/presentationPrograms/_animations/media/videos/transposition/1080p60/MatrixTransposeAnimation.gif)
 
 
 ```python
