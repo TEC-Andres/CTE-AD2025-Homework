@@ -11,16 +11,16 @@
 '''
 matrix_val = []
 below_max = []
-max_val = int(input("Maximum value (integer): "))
-num_rows = int(input("Number of rows (integer): "))
-num_cols = int(input("Number of columns (integer): "))
+max_val = int(input("Maximum value: "))
+num_rows = int(input("Number of rows: "))
+num_cols = int(input("Number of columns: "))
 
 for i in range(num_rows):
     matrix_val.append([0] * num_cols)
 
 for i in range(num_rows):
     for j in range(num_cols):
-        matrix_val[i][j] = int(input(f"Enter the value for row {i+1}, column {j+1} (0 to {max_val}): "))
+        matrix_val[i][j] = int(input(f"Enter the value for row {i+1}, column {j+1}: "))
 
 def to_list(matrix, max_value):
     result = []
