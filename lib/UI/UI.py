@@ -83,15 +83,30 @@ class GameUI:
         self.grid_frame = ttk.Frame(self.frame)
         self.grid_frame.pack(expand=True, fill='both', padx=10, pady=10)
 
-        # Add solver button
+        self.add_control_buttons()
+
+        self.create_grid()
+
+    def add_control_buttons(self):
+        # Control buttons frame
+        self.button_frame = ttk.Frame(self.control_panel)
+        self.button_frame.pack(side='right', padx=10)
+
+        # Play Again button
+        self.play_again_btn = ttk.Button(
+            self.button_frame,
+            text="Play Again",
+            command=self.reset_game
+        )
+        self.play_again_btn.pack(side='left', padx=5)
+
+        # Auto Solve button
         self.solver_btn = ttk.Button(
-            self.control_panel,
+            self.button_frame,
             text="Auto Solve",
             command=self.start_auto_solve
         )
-        self.solver_btn.pack(side='right', padx=10)
-
-        self.create_grid()
+        self.solver_btn.pack(side='left', padx=5)
 
     def create_grid(self):
         # Clear existing grid if any
@@ -114,6 +129,9 @@ class GameUI:
                     btn.grid(row=y, column=x, padx=1, pady=1)
                     btn.configure(command=lambda x=x, y=y, z=z: self.cell_click(x, y, z))
                     self.buttons[(x, y, z)] = btn
+
+        # Show revealed cells if any exist (including after winning)
+        self.show_revealed_cells()
 
     def cell_click(self, x, y, z):
         if self.game_over or self.review_mode:
@@ -181,7 +199,11 @@ class GameUI:
         total_cells = 4 * 4 * 4 * 4  # 4D grid
         bomb_cells = self.tensor.bomb  # Number of bombs
         safe_cells = total_cells - bomb_cells
-        return len(self.revealed_cells) == safe_cells
+        won = len(self.revealed_cells) == safe_cells
+        if won and not self.game_over:  # Only show message first time
+            self.game_over = True
+            messagebox.showinfo("Congratulations!", "You've won the game!")
+        return won
 
     def start_game(self):
         # Initialize game state
@@ -232,22 +254,7 @@ class GameUI:
     def enter_review_mode(self):
         self.review_mode = True
         self.show_all_bombs_all_dimensions()
-        self.add_play_again_button()
-
-    def add_play_again_button(self):
-        # Remove existing play again button if it exists
-        for widget in self.control_panel.winfo_children():
-            if getattr(widget, 'play_again_button', False):
-                widget.destroy()
-
-        # Add new play again button
-        play_again_btn = ttk.Button(
-            self.control_panel,
-            text="Play Again",
-            command=self.reset_game
-        )
-        play_again_btn.play_again_button = True  # Mark this button
-        play_again_btn.pack(side='right', padx=10)
+        self.solver_btn.configure(state='disabled')
 
     def show_all_bombs_all_dimensions(self):
         # Store all bomb locations
@@ -288,6 +295,7 @@ class GameUI:
         self.create_grid()
         self.start_timer()
         self.mines_left.configure(text=f"Mines: {self.tensor.bomb}")
+        self.solver_btn.configure(state='normal')
 
     def previous_w(self):
         if self.current_w > 0:
@@ -296,6 +304,8 @@ class GameUI:
             self.create_grid()
             if self.review_mode:
                 self.show_bombs_for_dimension(self.current_w)
+            elif self.game_over:  # Show revealed cells after winning
+                self.show_revealed_cells()
 
     def next_w(self):
         if self.current_w < self.dimensions[3] - 1:
@@ -304,6 +314,8 @@ class GameUI:
             self.create_grid()
             if self.review_mode:
                 self.show_bombs_for_dimension(self.current_w)
+            elif self.game_over:  # Show revealed cells after winning
+                self.show_revealed_cells()
 
     def update_w_display(self):
         self.w_value.config(text=f"Level {self.current_w}")
@@ -313,11 +325,12 @@ class GameUI:
         self.update_timer()
 
     def update_timer(self):
-        minutes = self.time // 60
-        seconds = self.time % 60
-        self.time_label.config(text=f"Time: {minutes}:{seconds:02d}")
-        self.time += 1
-        self.master.after(1000, self.update_timer)
+        if not self.game_over:  # Only update if game is not over
+            minutes = self.time // 60
+            seconds = self.time % 60
+            self.time_label.config(text=f"Time: {minutes}:{seconds:02d}")
+            self.time += 1
+            self.master.after(1000, self.update_timer)
 
     def start_auto_solve(self):
         if self.game_over or self.review_mode:
@@ -326,156 +339,12 @@ class GameUI:
         self.solver_btn.configure(state='disabled')
         self.auto_solve()
 
-    def auto_solve(self):
-        if self.game_over or self.review_mode:
-            self.solver_btn.configure(state='normal')
-            return
-
-        # If we have no known safe moves, find one
-        if not self.safe_moves:
-            self.calculate_safe_moves()
-
-        # If we still have no safe moves, make an educated guess
-        if not self.safe_moves:
-            self.make_educated_guess()
-
-        # Get next move from safe_moves
-        if self.safe_moves:
-            move = self.safe_moves.pop()
-            x, y, z, w = move
-
-            # Switch to correct W dimension if needed
-            if w != self.current_w:
-                self.current_w = w
-                self.update_w_display()
-                self.create_grid()
-
-            # Perform the move
-            if (x, y, z) in self.buttons:
-                self.simulate_cell_click(x, y, z)
-
-            # Schedule next move
-            if not self.game_over and not self.review_mode:
-                self.master.after(100, self.auto_solve)
-        else:
-            self.solver_btn.configure(state='normal')
-
-    def calculate_safe_moves(self):
-        # Reset safe moves
-        self.safe_moves = set()
-
-        # Check each cell in 4D space
-        for w in range(self.dimensions[3]):
-            for z in range(self.dimensions[2]):
-                for y in range(self.dimensions[1]):
-                    for x in range(self.dimensions[0]):
-                        coords = (x, y, z, w)
-                        # Skip if already revealed or known bomb
-                        if coords in self.revealed_cells:
-                            continue
-
-                        # Calculate probability of being safe
-                        if self.is_safe_move(coords):
-                            self.safe_moves.add(coords)
-
-    def is_safe_move(self, coords):
-        x, y, z, w = coords
-
-        # Check if any adjacent revealed cell has a number that guarantees this cell is safe
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    for dw in [-1, 0, 1]:
-                        adj_x, adj_y, adj_z, adj_w = x + dx, y + dy, z + dz, w + dw
-                        adj_coords = (adj_x, adj_y, adj_z, adj_w)
-
-                        if (0 <= adj_x < 4 and 0 <= adj_y < 4 and
-                            0 <= adj_z < 4 and 0 <= adj_w < 4):
-                            if adj_coords in self.revealed_cells:
-                                # If adjacent cell is revealed and has all its bombs accounted for
-                                if self.is_cell_satisfied(adj_coords):
-                                    return True
-        return False
-
-    def is_cell_satisfied(self, coords):
-        x, y, z, w = coords
-        if coords not in self.revealed_cells:
-            return False
-
-        # Get the number in this cell
-        value = self._get_tensor_value(coords)
-        if value == 100:  # If it's a bomb
-            return False
-
-        # Count adjacent unrevealed cells and known bombs
-        adjacent_unknown = 0
-        adjacent_bombs = 0
-
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    for dw in [-1, 0, 1]:
-                        new_x, new_y, new_z, new_w = x + dx, y + dy, z + dz, w + dw
-                        if (0 <= new_x < 4 and 0 <= new_y < 4 and
-                            0 <= new_z < 4 and 0 <= new_w < 4):
-                            adj_coords = (new_x, new_y, new_z, new_w)
-                            if adj_coords not in self.revealed_cells:
-                                adjacent_unknown += 1
-                            elif self._get_tensor_value(adj_coords) == 100:
-                                adjacent_bombs += 1
-
-        # If the number matches known bombs and there are unrevealed cells,
-        # all unrevealed cells must be safe
-        return adjacent_bombs == self._count_adjacent_bombs(coords)
-
-    def make_educated_guess(self):
-        # Find the cell with the lowest probability of being a bomb
-        min_prob = float('inf')
-        best_move = None
-
-        for w in range(self.dimensions[3]):
-            for z in range(self.dimensions[2]):
-                for y in range(self.dimensions[1]):
-                    for x in range(self.dimensions[0]):
-                        coords = (x, y, z, w)
-                        if coords not in self.revealed_cells:
-                            prob = self.calculate_bomb_probability(coords)
-                            if prob < min_prob:
-                                min_prob = prob
-                                best_move = coords
-
-        if best_move:
-            self.safe_moves.add(best_move)
-
-    def calculate_bomb_probability(self, coords):
-        x, y, z, w = coords
-        total_adjacent = 0
-        bomb_indicators = 0
-
-        # Check all adjacent revealed cells
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    for dw in [-1, 0, 1]:
-                        new_x, new_y, new_z, new_w = x + dx, y + dy, z + dz, w + dw
-                        adj_coords = (new_x, new_y, new_z, new_w)
-
-                        if (0 <= new_x < 4 and 0 <= new_y < 4 and
-                            0 <= new_z < 4 and 0 <= new_w < 4):
-                            if adj_coords in self.revealed_cells:
-                                total_adjacent += 1
-                                bomb_indicators += self._count_adjacent_bombs(adj_coords)
-
-        return bomb_indicators / (total_adjacent + 1) if total_adjacent > 0 else 0.5
-
     def simulate_cell_click(self, x, y, z):
         """Simulates a click without animation delay"""
         if (x, y, z) not in self.buttons or self.game_over or self.review_mode:
             return
 
         coords = (x, y, z, self.current_w)
-
-        # Get the value from our tensor
         value = self._get_tensor_value(coords)
 
         # If it's a bomb
@@ -498,6 +367,81 @@ class GameUI:
 
         # Check for win
         if self._check_win():
-            messagebox.showinfo("Congratulations!", "Auto-solver won the game!")
             self.game_over = True
+            messagebox.showinfo("Congratulations!", "Auto-solver won the game!")
             self.solver_btn.configure(state='normal')
+
+    def auto_solve(self):
+        if self.game_over or self.review_mode:
+            self.solver_btn.configure(state='normal')
+            return
+
+        # Find a safe cell by checking tensor directly
+        move = self.find_safe_move()
+
+        if move:
+            x, y, z, w = move
+
+            # Switch to correct W dimension if needed
+            if w != self.current_w:
+                self.current_w = w
+                self.update_w_display()
+                self.create_grid()
+                # Need to show revealed cells in new dimension
+                self.show_revealed_cells()
+
+            # Perform the move
+            if (x, y, z) in self.buttons:
+                self.simulate_cell_click(x, y, z)
+
+            # Schedule next move with a longer delay to make it visible
+            if not self.game_over and not self.review_mode:
+                self.master.after(300, self.auto_solve)
+        else:
+            self.solver_btn.configure(state='normal')
+
+    def show_revealed_cells(self):
+        """Updates the display of already revealed cells when switching dimensions"""
+        for (x, y, z, w) in self.revealed_cells:
+            if w == self.current_w and (x, y, z) in self.buttons:
+                value = self._get_tensor_value((x, y, z, w))
+                btn = self.buttons[(x, y, z)]
+                if value == 100:
+                    btn.configure(text="💣", state="disabled", style="Bomb.TButton")
+                else:
+                    adjacent_bombs = self._count_adjacent_bombs((x, y, z, w))
+                    btn.configure(text=str(adjacent_bombs) if adjacent_bombs > 0 else "",
+                                state="disabled",
+                                style="Revealed.TButton")
+
+    def find_safe_move(self):
+        # First try to find an unrevealed safe cell
+        for w in range(self.dimensions[3]):
+            for z in range(self.dimensions[2]):
+                for y in range(self.dimensions[1]):
+                    for x in range(self.dimensions[0]):
+                        coords = (x, y, z, w)
+                        # Skip if already revealed
+                        if coords not in self.revealed_cells:
+                            # We can look directly at the tensor to find safe moves
+                            if self._get_tensor_value(coords) != 100:
+                                return coords
+        return None
+
+    def enter_review_mode(self):
+        self.review_mode = True
+        self.show_all_bombs_all_dimensions()
+        self.solver_btn.configure(state='disabled')
+
+    def reset_game(self):
+        self.game_over = False
+        self.review_mode = False
+        self.revealed_cells = set()
+        self.bomb_locations = {}
+        self.tensor = Tensor(4, 4)
+        self.current_w = 0
+        self.update_w_display()
+        self.create_grid()
+        self.start_timer()
+        self.mines_left.configure(text=f"Mines: {self.tensor.bomb}")
+        self.solver_btn.configure(state='normal')
