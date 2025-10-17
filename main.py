@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 import os
+from lib.UI.UI import GameUI
 
 assets_dir = os.path.join(os.path.dirname(__file__), 'assets')
 icon_path = os.path.join(assets_dir, 'logo.ico')
@@ -39,6 +40,7 @@ class App:
         self.root.overrideredirect(False)
         self.root.state('zoomed')
         self.set_window_icon()
+        self.game_ui = GameUI(self.root)
 
     def set_window_icon(self):
         try:
