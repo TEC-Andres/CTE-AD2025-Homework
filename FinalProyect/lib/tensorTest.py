@@ -6,7 +6,7 @@ class Tensor:
     def __init__(self, rank, size):
         self.rank = rank
         self.size = size
-        self.bomb = 100
+        self.bomb = 2
         self.data = self._create(rank, size)
 
     def _create(self, rank, size, counter=None):
