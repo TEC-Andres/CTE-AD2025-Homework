@@ -1,5 +1,5 @@
 from ._globalAssets import *
+icon = IconAsset()
+png = PngAsset()
 
-file = GlobalAssets()
-
-__all__ = ["file"]
+__all__ = ["icon", "png"]

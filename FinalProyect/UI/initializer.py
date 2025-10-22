@@ -9,7 +9,7 @@ class Initializer:
         self.root.withdraw()         
         self.splash = tk.Toplevel(self.root)
         self.splash.overrideredirect(True)
-        self.logo_img = tk.PhotoImage(file=file.splash_image_path)
+        self.logo_img = tk.PhotoImage(file=png.banner)
         splash_width = self.logo_img.width()
         splash_height = self.logo_img.height()
         screen_width = self.splash.winfo_screenwidth()
@@ -39,9 +39,9 @@ class App:
 
     def set_window_icon(self):
         try:
-            self.root.iconbitmap(file.icon_path)
+            self.root.iconbitmap(icon.path)
         except tk.TclError:
-            print(f"Icon not found at: {file.icon_path}")
+            print(f"Icon not found at: {icon.path}")
 
 class Menu(App):
     def __init__(self, root):

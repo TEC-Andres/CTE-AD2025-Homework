@@ -3,5 +3,13 @@ import os
 class GlobalAssets:
     def __init__(self):
         self.assets_dir = os.path.join(os.path.dirname(__file__))
-        self.icon_path = os.path.join(self.assets_dir, 'logo.ico')
-        self.splash_image_path = os.path.join(self.assets_dir, 'banner.png')
+
+class IconAsset(GlobalAssets):
+    def __init__(self):
+        super().__init__()
+        self.path = os.path.join(self.assets_dir, 'logo.ico')
+
+class PngAsset(GlobalAssets):
+    def __init__(self):
+        super().__init__()
+        self.banner = os.path.join(self.assets_dir, 'banner.png')
