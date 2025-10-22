@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 from assets import * 
-from lib.tensor import Tensor, BombOperator
+from lib import *
 from UI.gameUI import gameWindowHandler
 
 class App:
