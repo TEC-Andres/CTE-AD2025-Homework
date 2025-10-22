@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import os
 from assets import * 
+from UI.app import *
 
 class Initializer:
     def __init__(self, root):
@@ -28,20 +29,6 @@ class Initializer:
         self.splash.destroy()
         Menu(self.root)
         self.root.deiconify()
-
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("4D Minesweeper")
-        self.root.overrideredirect(False)
-        self.root.state('zoomed')
-        self.set_window_icon()
-
-    def set_window_icon(self):
-        try:
-            self.root.iconbitmap(icon.path)
-        except tk.TclError:
-            print(f"Icon not found at: {icon.path}")
 
 class Menu(App):
     def __init__(self, root):

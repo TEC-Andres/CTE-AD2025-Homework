@@ -1,6 +1,4 @@
 from .initializer import *
+from .app import *
 
-root = tk.Tk()
-initializer = Initializer(root) 
-
-__all__ = ["root", "initializer"]
+__all__ = ["root", "initializer", "app"]
