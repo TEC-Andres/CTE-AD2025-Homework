@@ -9,7 +9,7 @@ class Tensor:
     def __init__(self, rank, size, bombs=1):
         self.rank = rank
         self.size = size
-        self.bomb = bombs+1 # We screwed up at the beginning, to keep consistency we needed to add 1 extra bomb
+        self.bomb = bombs  # Adjust bomb count to match expected behavior
         self.data = self._create(rank, size)
 
     def _create(self, rank, size, counter=None):

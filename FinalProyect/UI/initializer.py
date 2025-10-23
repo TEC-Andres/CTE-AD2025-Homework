@@ -26,13 +26,10 @@ class Initializer:
     def close_splash(self):
         """Destroys the splash screen and launches the main app with menu."""
         self.splash.destroy()
-        Menu(self.root)
+        # Ensure the main window is visible before initializing the app
         self.root.deiconify()
+        Menu(self.root)
 
 class Menu(App):
     def __init__(self, root):
         super().__init__(root)
-        self.create_menu()
-
-    def create_menu(self):
-        pass

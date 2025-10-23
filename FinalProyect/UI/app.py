@@ -13,6 +13,7 @@ class App:
         self.root.state('zoomed')
         self.set_window_icon()
         self.build_layout()
+        self.menu()
 
     def set_window_icon(self):
         try:
@@ -34,3 +35,35 @@ class App:
 
         # Sidebar controls hooked to the game view
         SidebarControls(self.sidebar, self.game_view)
+
+    def menu(self):
+    # Create a background overlay to simulate modal behavior
+        bg_image = tk.PhotoImage(file=png.blurGame)
+        overlay = tk.Label(self.game_area, image=bg_image)
+        overlay.image = bg_image  # Keep a reference to avoid garbage collection
+        overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        # Create the pseudo-window (menu)
+        menu_frame = ttk.Frame(
+            overlay,
+            padding=30,
+            relief="raised",
+            borderwidth=3
+        )
+        menu_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        label = ttk.Label(menu_frame, text="Choose Board Size:", font=("Arial", 16))
+        label.pack(pady=(0, 15))
+
+        def start_game(size):
+            # Destroy the pseudowindow
+            overlay.destroy()
+            # Set bomb count in GlobalVars
+            from assets._globalVariables import GlobalVars
+            GlobalVars.BOMBS = {3: 5, 4: 10, 5: 15}.get(size, 0)
+            self.game_view.new_game(size, GlobalVars.BOMBS)
+
+        # Buttons
+        for size in [3, 4, 5]:
+            btn = ttk.Button(menu_frame, text=f"{size} × {size}", command=lambda s=size: start_game(s))
+            btn.pack(fill="x", padx=40, pady=5)

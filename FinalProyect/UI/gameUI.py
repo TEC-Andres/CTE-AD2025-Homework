@@ -1,6 +1,7 @@
 import math
 from math import hypot
 import tkinter as tk
+from tkinter import messagebox
 from lib import BombOperator, Tensor, BoundaryOperator
 from assets import VAR
 
@@ -25,7 +26,6 @@ class Minesweeper3DGrid:
         self.j = j
         self.k = k
         self.spacing = spacing
-        # We'll fix a=0 for the 3D view and map (x,y,z) -> (b,c,d)
         self.solved_tensor = solved_tensor
         self.primary_index = 0  # corresponds to first dimension: T[a][x][y][z]
         # Track revealed cubes per tensor slice a: {a: set(idx)}
@@ -53,8 +53,6 @@ class Minesweeper3DGrid:
 
         # Fast coord->idx mapping for region reveals
         self._coord_to_idx = {coord: idx for idx, coord in enumerate(self.cube_indices)}
-
-        # Each small cube's vertices (relative to center)
         s = spacing / 2 * 0.8
         self.cube_vertices = [
             (-s, -s, -s), (s, -s, -s), (s, s, -s), (-s, s, -s),
@@ -321,6 +319,66 @@ class Minesweeper3DGrid:
         canvas3d.draw()
         return True
 
+    # ----------------------------- Game state helpers -----------------------------
+    def reveal_all_bombs(self, canvas3d) -> int:
+        """Reveal all bombs across all 'a' slices and redraw. Returns count revealed now."""
+        if self.solved_tensor is None:
+            return 0
+        total_revealed = 0
+        try:
+            size_a = len(self.solved_tensor)
+        except Exception:
+            size_a = 0
+        for a in range(size_a):
+            revealed = self._revealed_by_slice.setdefault(a, set())
+            # No need to consider flags when revealing bombs on loss
+            for x in range(self.i):
+                for y in range(self.j):
+                    for z in range(self.k):
+                        try:
+                            val = int(self.solved_tensor[a][x][y][z])
+                        except Exception:
+                            val = 0
+                        if not self._is_bomb(val):
+                            continue
+                        ridx = self._coord_to_idx.get((x, y, z))
+                        if ridx is None:
+                            continue
+                        if ridx not in revealed:
+                            revealed.add(ridx)
+                            total_revealed += 1
+        if total_revealed > 0:
+            canvas3d.draw()
+        print(f"Revealed all bombs across slices. Newly revealed bombs: {total_revealed}")
+        return total_revealed
+
+    def all_safe_revealed(self) -> bool:
+        """Return True if all non-bomb cells across all slices are revealed."""
+        if self.solved_tensor is None:
+            return False
+        try:
+            size_a = len(self.solved_tensor)
+        except Exception:
+            return False
+
+        for a in range(size_a):
+            revealed = self._revealed_by_slice.get(a, set())
+            for x in range(self.i):
+                for y in range(self.j):
+                    for z in range(self.k):
+                        try:
+                            val = int(self.solved_tensor[a][x][y][z])
+                        except Exception:
+                            val = 0
+                        if self._is_bomb(val):
+                            continue  # bombs don't need to be revealed for win
+                        ridx = self._coord_to_idx.get((x, y, z))
+                        if ridx is None:
+                            continue
+                        if ridx not in revealed:
+                            return False
+        return True
+
 class Interactive3DCanvas:
     """
     Lightweight 3D wireframe renderer on a Tkinter Canvas with robust picking.
@@ -343,6 +401,7 @@ class Interactive3DCanvas:
         self._dragging = False
         self._last = (0, 0)
         self._press_pos = (0, 0)
+        self._game_over = False
 
         # Prepare solved tensor and create 3D grid
         th = TensorHandling()
@@ -462,6 +521,8 @@ class Interactive3DCanvas:
 
     # ----------------------------- Picking -----------------------------
     def _handle_click(self, x, y):
+        if self._game_over:
+            return
         # Gather candidates whose polygon contains (x,y)
         candidates = []
         for pr in self._pick_regions:
@@ -475,6 +536,15 @@ class Interactive3DCanvas:
         chosen_idx = best['idx']
         # If it's a zero, reveal the whole zero-region across all slices; else reveal single
         val = self.grid._get_value_for_cube(chosen_idx)
+        # Loss condition: clicked a bomb
+        if self.grid._is_bomb(val):
+            self.grid.reveal_all_bombs(self)
+            self._game_over = True
+            try:
+                messagebox.showerror("Game Over", "You hit a mine. You lost the game!", parent=self.parent)
+            except Exception:
+                messagebox.showerror("Game Over", "You hit a mine. You lost the game!")
+            return
         if val == 0:
             # Reveal region across all dimensions
             revealed = self.grid.reveal_zero_region_all_from(chosen_idx, self)
@@ -483,7 +553,12 @@ class Interactive3DCanvas:
         else:
             self.grid.reveal_cube(chosen_idx, self)
 
+        # After any reveal, check for win
+        self._check_and_handle_win()
+
     def _on_right_click(self, event: tk.Event):
+        if self._game_over:
+            return
         # Immediate flag toggle on right click
         x, y = event.x, event.y
         candidates = []
@@ -495,6 +570,17 @@ class Interactive3DCanvas:
         best = max(candidates, key=lambda p: p.get('avg_f', 0))
         chosen_idx = best['idx']
         self.grid.toggle_flag(chosen_idx, self)
+
+    # ----------------------------- Win check -----------------------------
+    def _check_and_handle_win(self):
+        if self._game_over:
+            return
+        if self.grid.all_safe_revealed():
+            self._game_over = True
+            try:
+                messagebox.showinfo("You Win", "You have won the game!", parent=self.parent)
+            except Exception:
+                messagebox.showinfo("You Win", "You have won the game!")
 
 def gameWindowHandler(parent: tk.Widget, width: int | None = None, height: int | None = None) -> Interactive3DCanvas:
     """Create and attach the interactive 3D canvas to the given parent."""
