@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Minesweeper (3D View)</title>
+    <!-- 1. Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Use Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #111827; /* bg-gray-900 */
+            color: #f3f4f6; /* text-gray-100 */
+        }
+        canvas {
+            display: block;
+        }
+        /* Style for the text labels on cubes */
+        .label {
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen">
+
+    <!-- 2. Main 3D Canvas Container -->
+    <div id="canvas-container" class="flex-1 relative">
+        <!-- Canvas will be inserted here by three.js -->
+        <div id="loader" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 z-20">
+            <p class="text-xl text-white">Loading 3D Scene...</p>
+        </div>
+    </div>
+
+    <!-- 3. Controls Panel -->
+    <div class="w-full md:w-72 bg-gray-800 p-6 shadow-lg overflow-y-auto">
+        <h1 class="text-2xl font-bold text-white mb-4">4D Minesweeper</h1>
+        
+        <div class="space-y-4">
+            <!-- Game Info -->
+            <div>
+                <h2 class="text-lg font-semibold text-cyan-400">Game Info</h2>
+                <div class="text-sm space-y-1 mt-2">
+                    <p><strong>Mines:</strong> <span id="mines-count">0</span></p>
+                    <p><strong>Flags:</strong> <span id="flags-count">0</span></p>
+                    <p><strong>Status:</strong> <span id="game-status" class="font-medium text-yellow-300">Initializing...</span></p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div>
+                <h2 class="text-lg font-semibold text-cyan-400">Controls</h2>
+                <p class="text-sm text-gray-300 mt-2 mb-3">
+                    - <b>Left Click:</b> Reveal Cell
+                    <br>- <b>Right Click:</b> Flag Cell
+                    <br>- <b>Mouse:</b> Orbit/Pan/Zoom
+                </p>
+                
+                <!-- The "Rotate" button as requested -->
+                <div class="mt-4">
+                    <label for="slice-slider" class="block text-sm font-medium text-gray-300">
+                        4th Dimension Slice: <span id="slice-label" class="font-bold text-white">0</span>
+                    </label>
+                    <button id="rotate-button" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition-colors mt-2">
+                        Rotate (Next Slice)
+                    </button>
+                </div>
+            </div>
+
+            <!-- New Game -->
+            <div class="pt-4 border-t border-gray-700">
+                <h2 class="text-lg font-semibold text-cyan-400">New Game</h2>
+                <p class="text-sm text-gray-300 mt-2 mb-3">
+                    Select tensor size (W, X, Y, Z) and mine density.
+                </p>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <input type="number" id="dim-w" value="3" min="2" max="5" class="bg-gray-700 text-white rounded-md p-2 w-full" title="4th Dim (W)">
+                    <input type="number" id="dim-x" value="4" min="2" max="8" class="bg-gray-700 text-white rounded-md p-2 w-full" title="3rd Dim (X)">
+                    <input type="number" id="dim-y" value="4" min="2" max="8" class="bg-gray-700 text-white rounded-md p-2 w-full" title="2nd Dim (Y)">
+                    <input type="number" id="dim-z" value="4" min="2" max="8" class="bg-gray-700 text-white rounded-md p-2 w-full" title="1st Dim (Z)">
+                </div>
+                 <input type="number" id="mine-density" value="15" min="5" max="50" class="bg-gray-700 text-white rounded-md p-2 w-full mt-2" title="Mine Density (%)">
+                <button id="new-game-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors mt-3">
+                    Start New Game
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Three.js and OrbitControls Imports -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- 5. Main Game Logic -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- Global Variables ---
+        let scene, camera, renderer, labelRenderer, controls;
+        let gameTensor = []; // The 4D data structure
+        let cubeObjects = []; // To store visible THREE.Mesh objects for raycasting
+        let textLabels = []; // To store visible CSS2DObject labels
+        let raycaster, pointer;
+        
+        // Game state
+        let DIMS = { W: 3, X: 4, Y: 4, Z: 4 }; // W=4th dim, X,Y,Z=3D slice
+        let MINE_DENSITY = 0.15; // 15%
+        let totalMines = 0;
+        let flagsPlaced = 0;
+        let isGameOver = false;
+        let isGameWon = false;
+        let cellsToReveal = 0;
+        
+        let currentSlice = 0; // Current index of the 4th dimension (W)
+        
+        const CUBE_SIZE = 1;
+        const CUBE_GAP = 0.2;
+        const CELL_SPACING = CUBE_SIZE + CUBE_GAP;
+
+        // Materials
+        const hiddenMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x555555, // Gray
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const flaggedMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xff8c00, // Orange
+            roughness: 0.6,
+            metalness: 0.1
+        });
+        const mineMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff0000, // Red
+            roughness: 0.5,
+            metalness: 0.2
+        });
+        const revealedMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333, // Dark Gray
+            roughness: 0.9,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.2
+        });
+        
+        // Colors for mine count numbers
+        const numberColors = [
+            0xffffff, // 0 - not used
+            0x0080ff, // 1 - Blue
+            0x008000, // 2 - Green
+            0xff0000, // 3 - Red
+            0x000080, // 4 - Dark Blue
+            0x800000, // 5 - Maroon
+            0x008080, // 6 - Teal
+            0x000000, // 7 - Black
+            0x808080  // 8+ - Gray
+        ];
+
+        // --- DOM Elements ---
+        const canvasContainer = document.getElementById('canvas-container');
+        const loader = document.getElementById('loader');
+        const rotateButton = document.getElementById('rotate-button');
+        const newGameButton = document.getElementById('new-game-button');
+        const sliceLabel = document.getElementById('slice-label');
+        const minesCountEl = document.getElementById('mines-count');
+        const flagsCountEl = document.getElementById('flags-count');
+        const gameStatusEl = document.getElementById('game-status');
+        
+        // --- Initialization ---
+
+        function init() {
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827); // bg-gray-900
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+            camera.position.set(DIMS.X * 1.5, DIMS.Y * 1.5, DIMS.Z * 1.5);
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            canvasContainer.appendChild(renderer.domElement);
+
+            // 4. Label Renderer (for numbers)
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none'; // Pass clicks through
+            canvasContainer.appendChild(labelRenderer.domElement);
+
+            // 5. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            // 6. Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+
+            // 7. Raycasting
+            raycaster = new THREE.Raycaster();
+            pointer = new THREE.Vector2();
+
+            // 8. Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            canvasContainer.addEventListener('pointerdown', onPointerDown);
+            // Disable right-click context menu on canvas
+            canvasContainer.addEventListener('contextmenu', (e) => e.preventDefault()); 
+
+            rotateButton.addEventListener('click', rotateSlice);
+            newGameButton.addEventListener('click', startNewGame);
+
+            // 9. Start Game
+            startNewGame();
+
+            // 10. Start Animation Loop
+            animate();
+        }
+
+        function startNewGame() {
+            isGameOver = false;
+            isGameWon = false;
+            currentSlice = 0;
+            totalMines = 0;
+            flagsPlaced = 0;
+            cellsToReveal = 0;
+
+            // Read dimensions from input
+            DIMS.W = parseInt(document.getElementById('dim-w').value) || 3;
+            DIMS.X = parseInt(document.getElementById('dim-x').value) || 4;
+            DIMS.Y = parseInt(document.getElementById('dim-y').value) || 4;
+            DIMS.Z = parseInt(document.getElementById('dim-z').value) || 4;
+            MINE_DENSITY = (parseInt(document.getElementById('mine-density').value) || 15) / 100;
+
+            gameStatusEl.textContent = "Generating...";
+            gameStatusEl.className = "font-medium text-yellow-300";
+
+            // Use setTimeout to allow UI to update before heavy computation
+            setTimeout(() => {
+                // 1. Create the 4D data structure
+                createGameTensor();
+                
+                // 2. Place mines
+                placeMines();
+                
+                // 3. Calculate adjacent mines (in 4D)
+                calculateAllAdjacentMines();
+
+                // 4. Draw the first 3D slice
+                draw3DSlice(currentSlice);
+
+                // 5. Update UI
+                updateUI();
+                centerCamera();
+                loader.style.display = 'none';
+            }, 100);
+        }
+
+        // --- 4D Tensor Logic ---
+
+        function createGameTensor() {
+            gameTensor = new Array(DIMS.W);
+            let totalCells = DIMS.W * DIMS.X * DIMS.Y * DIMS.Z;
+            cellsToReveal = totalCells;
+
+            for (let w = 0; w < DIMS.W; w++) {
+                gameTensor[w] = new Array(DIMS.X);
+                for (let x = 0; x < DIMS.X; x++) {
+                    gameTensor[w][x] = new Array(DIMS.Y);
+                    for (let y = 0; y < DIMS.Y; y++) {
+                        gameTensor[w][x][y] = new Array(DIMS.Z);
+                        for (let z = 0; z < DIMS.Z; z++) {
+                            gameTensor[w][x][y][z] = {
+                                isMine: false,
+                                isRevealed: false,
+                                isFlagged: false,
+                                adjacentMines: 0,
+                                // Store coordinates for easy reference
+                                coords: { w, x, y, z } 
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        function placeMines() {
+            totalMines = Math.floor(DIMS.W * DIMS.X * DIMS.Y * DIMS.Z * MINE_DENSITY);
+            if (totalMines === 0) totalMines = 1; // Ensure at least one mine
+            cellsToReveal -= totalMines;
+
+            let minesPlaced = 0;
+            while (minesPlaced < totalMines) {
+                const w = Math.floor(Math.random() * DIMS.W);
+                const x = Math.floor(Math.random() * DIMS.X);
+                const y = Math.floor(Math.random() * DIMS.Y);
+                const z = Math.floor(Math.random() * DIMS.Z);
+
+                let cell = getCell(w, x, y, z);
+                if (cell && !cell.isMine) {
+                    cell.isMine = true;
+                    minesPlaced++;
+                }
+            }
+        }
+
+        function calculateAllAdjacentMines() {
+            for (let w = 0; w < DIMS.W; w++) {
+                for (let x = 0; x < DIMS.X; x++) {
+                    for (let y = 0; y < DIMS.Y; y++) {
+                        for (let z = 0; z < DIMS.Z; z++) {
+                            if (gameTensor[w][x][y][z].isMine) continue;
+                            
+                            let mineCount = 0;
+                            // This is the 4D "Bomb Operator" from your PDF
+                            // It checks all 3^4 - 1 = 80 neighbors
+                            for (let dw = -1; dw <= 1; dw++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    for (let dy = -1; dy <= 1; dy++) {
+                                        for (let dz = -1; dz <= 1; dz++) {
+                                            if (dw === 0 && dx === 0 && dy === 0 && dz === 0) continue;
+                                            
+                                            let neighbor = getCell(w + dw, x + dx, y + dy, z + dz);
+                                            if (neighbor && neighbor.isMine) {
+                                                mineCount++;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            gameTensor[w][x][y][z].adjacentMines = mineCount;
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Helper to safely get a cell from the 4D tensor, handling boundary checks.
+         */
+        function getCell(w, x, y, z) {
+            if (w < 0 || w >= DIMS.W ||
+                x < 0 || x >= DIMS.X ||
+                y < 0 || y >= DIMS.Y ||
+                z < 0 || z >= DIMS.Z) {
+                return null;
+            }
+            return gameTensor[w][x][y][z];
+        }
+
+        // --- 3D Scene Drawing ---
+
+        /**
+         * Clears the current 3D scene and draws the specified 3D slice.
+         * @param {number} sliceIndex The index (w) of the 4th dimension to draw.
+         */
+        function draw3DSlice(sliceIndex) {
+            // 1. Clear existing objects
+            clearScene();
+
+            const slice3D = gameTensor[sliceIndex];
+            if (!slice3D) return;
+
+            // Calculate offset to center the grid
+            const offsetX = -( (DIMS.X - 1) * CELL_SPACING ) / 2;
+            const offsetY = -( (DIMS.Y - 1) * CELL_SPACING ) / 2;
+            const offsetZ = -( (DIMS.Z - 1) * CELL_SPACING ) / 2;
+
+            // 2. Create new objects for the current slice
+            for (let x = 0; x < DIMS.X; x++) {
+                for (let y = 0; y < DIMS.Y; y++) {
+                    for (let z = 0; z < DIMS.Z; z++) {
+                        const cellData = slice3D[x][y][z];
+                        
+                        // Calculate position
+                        const posX = x * CELL_SPACING + offsetX;
+                        const posY = y * CELL_SPACING + offsetY;
+                        const posZ = z * CELL_SPACING + offsetZ;
+                        
+                        let cube;
+                        if (cellData.isRevealed) {
+                            if (cellData.isMine) {
+                                // Revealed mine
+                                cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), mineMaterial);
+                            } else {
+                                // Revealed empty cell
+                                cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), revealedMaterial);
+                                // Add number label if adjacent mines > 0
+                                if (cellData.adjacentMines > 0) {
+                                    const label = createNumberLabel(cellData.adjacentMines);
+                                    label.position.set(posX, posY, posZ);
+                                    scene.add(label);
+                                    textLabels.push(label);
+                                }
+                            }
+                        } else if (cellData.isFlagged) {
+                            // Flagged cell
+                            cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), flaggedMaterial);
+                        } else {
+                            // Hidden cell
+                            cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), hiddenMaterial);
+                        }
+                        
+                        cube.position.set(posX, posY, posZ);
+                        
+                        // Store reference to game data in the mesh
+                        cube.userData = {
+                            cell: cellData,
+                            isCube: true
+                        };
+                        
+                        scene.add(cube);
+                        cubeObjects.push(cube);
+                    }
+                }
+            }
+        }
+
+        function createNumberLabel(number) {
+            const div = document.createElement('div');
+            div.className = 'label';
+            div.textContent = number;
+            // Use a color from our array, fallback to white
+            const color = numberColors[number] || 0xffffff;
+            div.style.color = `#${color.toString(16).padStart(6, '0')}`;
+            
+            const label = new CSS2DObject(div);
+            return label;
+        }
+
+        function clearScene() {
+            // Remove cubes
+            for (let i = cubeObjects.length - 1; i >= 0; i--) {
+                const obj = cubeObjects[i];
+                obj.geometry.dispose();
+                // obj.material.dispose(); // Materials are shared, don't dispose
+                scene.remove(obj);
+            }
+            cubeObjects = [];
+            
+            // Remove labels
+            for (let i = textLabels.length - 1; i >= 0; i--) {
+                const label = textLabels[i];
+                label.element.remove(); // Remove HTML element
+                scene.remove(label); // Remove from scene
+            }
+            textLabels = [];
+        }
+
+        function centerCamera() {
+            // Center orbit controls
+            const center = new THREE.Vector3(0, 0, 0);
+            controls.target.copy(center);
+
+            // Set camera position based on grid size
+            const maxDim = Math.max(DIMS.X, DIMS.Y, DIMS.Z);
+            const camPos = maxDim * CELL_SPACING * 0.75;
+            camera.position.set(camPos, camPos, camPos);
+            
+            controls.update();
+        }
+
+        // --- Game Logic ---
+        
+        /**
+         * This is the "Rotation Function" from your PDF.
+         * It cycles to the next 3D slice.
+         */
+        function rotateSlice() {
+            if (isGameOver || isGameWon) return;
+
+            // Increment and wrap around
+            currentSlice = (currentSlice + 1) % DIMS.W;
+            
+            // Redraw the 3D scene with the new slice
+            draw3DSlice(currentSlice);
+            
+            // Update UI
+            sliceLabel.textContent = currentSlice;
+        }
+        
+        function revealCell(cell) {
+            if (isGameOver || isGameWon || cell.isRevealed || cell.isFlagged) {
+                return;
+            }
+
+            cell.isRevealed = true;
+            cellsToReveal--;
+            
+            if (cell.isMine) {
+                // Game Over
+                triggerGameOver(cell);
+            } else if (cell.adjacentMines === 0) {
+                // This is the 4D "Boundary Operator" flood-fill
+                // It uses a queue to avoid stack overflow
+                const queue = [cell.coords];
+                
+                while (queue.length > 0) {
+                    const { w, x, y, z } = queue.shift();
+                    
+                    // Check all 80 neighbors (4D)
+                    for (let dw = -1; dw <= 1; dw++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dz = -1; dz <= 1; dz++) {
+                                    if (dw === 0 && dx === 0 && dy === 0 && dz === 0) continue;
+                                    
+                                    const neighbor = getCell(w + dw, x + dx, y + dy, z + dz);
+                                    
+                                    if (neighbor && !neighbor.isRevealed && !neighbor.isFlagged) {
+                                        neighbor.isRevealed = true;
+                                        cellsToReveal--;
+                                        
+                                        // If this neighbor is also empty, add it to the queue
+                                        // to check its neighbors
+                                        if (neighbor.adjacentMines === 0) {
+                                            queue.push(neighbor.coords);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check for win condition
+            if (!isGameOver && cellsToReveal === 0) {
+                triggerGameWin();
+            }
+
+            // Redraw the *current* slice to show the changes
+            // Note: The flood-fill may have revealed cells in *other* slices,
+            // which will become visible when the user rotates.
+            draw3DSlice(currentSlice);
+            updateUI();
+        }
+        
+        function flagCell(cell) {
+            if (isGameOver || isGameWon || cell.isRevealed) {
+                return;
+            }
+            
+            cell.isFlagged = !cell.isFlagged;
+            flagsPlaced += cell.isFlagged ? 1 : -1;
+            
+            // Redraw the current slice to show the flag
+            draw3DSlice(currentSlice);
+            updateUI();
+        }
+
+        function triggerGameOver(clickedMine) {
+            isGameOver = true;
+            gameStatusEl.textContent = "Game Over!";
+            gameStatusEl.className = "font-medium text-red-500";
+            
+            // Reveal all mines
+            for (let w = 0; w < DIMS.W; w++) {
+                for (let x = 0; x < DIMS.X; x++) {
+                    for (let y = 0; y < DIMS.Y; y++) {
+                        for (let z = 0; z < DIMS.Z; z++) {
+                            const cell = gameTensor[w][x][y][z];
+                            if (cell.isMine) {
+                                cell.isRevealed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Redraw to show all mines
+            draw3DSlice(currentSlice);
+        }
+
+        function triggerGameWin() {
+            isGameWon = true;
+            isGameOver = true; // Stop interactions
+            gameStatusEl.textContent = "You Win!";
+            gameStatusEl.className = "font-medium text-green-500";
+
+            // Auto-flag all mines
+            flagsPlaced = 0;
+            for (let w = 0; w < DIMS.W; w++) {
+                for (let x = 0; x < DIMS.X; x++) {
+                    for (let y = 0; y < DIMS.Y; y++) {
+                        for (let z = 0; z < DIMS.Z; z++) {
+                            const cell = gameTensor[w][x][y][z];
+                            if (cell.isMine) {
+                                cell.isFlagged = true;
+                                flagsPlaced++;
+                            }
+                        }
+                    }
+                }
+            }
+            draw3DSlice(currentSlice);
+            updateUI();
+        }
+        
+        function updateUI() {
+            sliceLabel.textContent = currentSlice;
+            minesCountEl.textContent = totalMines;
+            flagsCountEl.textContent = flagsPlaced;
+            
+            if (!isGameOver) {
+                gameStatusEl.textContent = "In Progress";
+                gameStatusEl.className = "font-medium text-green-400";
+            }
+        }
+        
+        // --- Event Handlers ---
+
+        function onWindowResize() {
+            camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            labelRenderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        }
+
+        function onPointerDown(event) {
+            if (isGameOver) return;
+            
+            // Calculate pointer position in normalized device coordinates
+            const bounds = canvasContainer.getBoundingClientRect();
+            pointer.x = ( (event.clientX - bounds.left) / canvasContainer.clientWidth ) * 2 - 1;
+            pointer.y = - ( (event.clientY - bounds.top) / canvasContainer.clientHeight ) * 2 + 1;
+
+            // Update the picking ray with the camera and pointer position
+            raycaster.setFromCamera(pointer, camera);
+
+            // Calculate objects intersecting the picking ray
+            const intersects = raycaster.intersectObjects(cubeObjects);
+
+            if (intersects.length > 0) {
+                const firstIntersect = intersects[0].object;
+                
+                if (firstIntersect.userData && firstIntersect.userData.isCube) {
+                    const cellData = firstIntersect.userData.cell;
+
+                    if (event.button === 0) { // Left click
+                        revealCell(cellData);
+                    } else if (event.button === 2) { // Right click
+                        flagCell(cellData);
+                    }
+                }
+            }
+        }
+
+        // --- Animation Loop ---
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update controls
+            controls.update();
+
+            // Render scene
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // --- Start Everything ---
+        init();
+    </script>
+</body>
+</html>
