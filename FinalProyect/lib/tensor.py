@@ -3,10 +3,10 @@ from typing import Any, List, Sequence, Tuple
 
 class Tensor:
     """Creates rank-N tensors as nested Python lists upon instantiation."""
-    def __init__(self, rank, size):
+    def __init__(self, rank, size, bombs=1):
         self.rank = rank
         self.size = size
-        self.bomb = 2
+        self.bomb = bombs+1 # We screwed up at the beginning, to keep consistency we needed to add 1 extra bomb
         self.data = self._create(rank, size)
 
     def _create(self, rank, size, counter=None):

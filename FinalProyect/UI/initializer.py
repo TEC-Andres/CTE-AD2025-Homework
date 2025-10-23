@@ -1,6 +1,5 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-import os
 from assets import * 
 from UI.app import *
 
