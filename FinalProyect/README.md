@@ -2,3 +2,5 @@
 ## Andrés Rodriguez C. Alejandro Salinas S
 
 We are able to generalize the Minesweeper game on any given $\mathcal{T}^r$ tensor as long two operators are defined; the bomb operator $\mathcal{B}$, and the boundary operator $\partial$. These are needed to execute the core logic of the game; that is, to control the logic behind the nearest bomb count, and to determine the size of empty space to reveal when a player clicks on an open minefield. In this paper, we will explore the 4th dimensional version of this generalized minesweeper; recreating the aforementioned using Python in order for players and developers to understand about advance mathematical concepts in a fun yet challenging way.
+
+The game executes by running main.py; alternatively, you can use our binaries that are located at bin.

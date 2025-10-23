@@ -1,14 +1,14 @@
 
 import random
 from typing import Any, List, Sequence, Tuple
-from assets import VAR
+from assets import var
 
 class Tensor:
     """Creates rank-N tensors as nested Python lists upon instantiation."""
     def __init__(self, rank, size, bombs=1):
-        # Seed RNG from current global VAR to allow reproducible or random boards
+        # Seed RNG from current global var to allow reproducible or random boards
         try:
-            random.seed(getattr(VAR, 'SEED', 98734987344567))
+            random.seed(getattr(var, 'SEED', 98734987344567))
         except Exception:
             random.seed(98734987344567)
         self.rank = rank

@@ -3,7 +3,7 @@ from math import hypot
 import tkinter as tk
 from tkinter import messagebox
 from lib import BombOperator, Tensor, BoundaryOperator
-from assets import VAR
+from assets import var
 
 class TensorHandling:
     """
@@ -11,10 +11,10 @@ class TensorHandling:
     """
     def __init__(self):
         self.op = BombOperator()
-        self.tensor = Tensor(rank=VAR.RANK, size=VAR.SIZE, bombs=VAR.BOMBS)
+        self.tensor = Tensor(rank=var.rank, size=var.size, bombs=var.bombs)
         self.solve = self.op.apply(self.tensor.data)
 
-        print(f"Initialized Tensor of rank {VAR.RANK}, size {VAR.SIZE}, with {VAR.BOMBS} bombs.")
+        print(f"Initialized Tensor of rank {var.rank}, size {var.size}, with {var.bombs} bombs.")
 
 class Minesweeper3DGrid:
     """
@@ -406,7 +406,7 @@ class Interactive3DCanvas:
         # Prepare solved tensor and create 3D grid
         th = TensorHandling()
         solved = th.solve
-        self.grid = Minesweeper3DGrid(VAR.SIZE, VAR.SIZE, VAR.SIZE, spacing=0.3, solved_tensor=solved)
+        self.grid = Minesweeper3DGrid(var.size, var.size, var.size, spacing=0.3, solved_tensor=solved)
 
         # Pick regions populated each frame: list of dicts {idx, poly, avg_f, ...}
         self._pick_regions = []
@@ -430,19 +430,18 @@ class Interactive3DCanvas:
         self._schedule_animation()
 
     def new_game(self, size: int | None = None, bombs: int | None = None):
-        """Rebuild the tensor and grid using current globals. Optional size/bombs override VAR first."""
-        from assets import VAR
+        """Rebuild the tensor and grid using current globals. Optional size/bombs override var first."""
         if size is not None:
-            VAR.SIZE = size
+            var.size = size
         if bombs is not None:
-            VAR.BOMBS = bombs
+            var.bombs = bombs
 
-        # Recreate tensor with current VAR settings (includes seeding)
+        # Recreate tensor with current var settings (includes seeding)
         th = TensorHandling()
         solved = th.solve
 
         # Recreate grid and reset state
-        self.grid = Minesweeper3DGrid(VAR.SIZE, VAR.SIZE, VAR.SIZE, spacing=0.3, solved_tensor=solved)
+        self.grid = Minesweeper3DGrid(var.size, var.size, var.size, spacing=0.3, solved_tensor=solved)
         self._pick_regions = []
         self._on_resize()
         self.draw()
