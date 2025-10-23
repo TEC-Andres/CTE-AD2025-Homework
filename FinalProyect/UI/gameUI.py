@@ -32,6 +32,8 @@ class Minesweeper3DGrid:
         self.primary_index = 0  # corresponds to first dimension: T[a][x][y][z]
         # Track revealed cubes per tensor slice a: {a: set(idx)}
         self._revealed_by_slice = {}
+        # Track flagged cubes per tensor slice a: {a: set(idx)}
+        self._flagged_by_slice = {}
 
         # Generate grid of cube centers
         offset_x = (i - 1) * spacing / 2
@@ -111,11 +113,13 @@ class Minesweeper3DGrid:
         """Draw all cubes in the grid as solid (filled) cubes. Revealed cubes are not drawn."""
         # The Interactive3DCanvas maintains canvas3d._pick_regions.
         revealed_set = self._revealed_by_slice.get(self.primary_index, set())
+        flagged_set = self._flagged_by_slice.get(self.primary_index, set())
         for idx, center in enumerate(self.cube_centers):
             is_revealed = idx in revealed_set
-            self._draw_single_cube(canvas3d, idx, center, is_revealed)
+            is_flagged = idx in flagged_set
+            self._draw_single_cube(canvas3d, idx, center, is_revealed, is_flagged)
 
-    def _draw_single_cube(self, canvas3d, idx, center, is_revealed):
+    def _draw_single_cube(self, canvas3d, idx, center, is_revealed, is_flagged):
         # If revealed, draw only value text and skip faces
         if is_revealed:
             tv_center = canvas3d._rotate(center)
@@ -146,9 +150,15 @@ class Minesweeper3DGrid:
         face_depths.sort()  # draw furthest first
 
         # Choose color for visible (not revealed) cube
-        fill_color = "#6cf"
-        outline_color = "#39a"
-        stipple = "gray12" 
+        if is_flagged:
+            # Yellow flagged cube
+            fill_color = "#ffeb3b"
+            outline_color = "#b58900"
+            stipple = "gray25"
+        else:
+            fill_color = "#6cf"
+            outline_color = "#39a"
+            stipple = "gray12" 
 
         for order, (z, fidx) in enumerate(face_depths):
             face = self.cube_faces[fidx]
@@ -202,6 +212,10 @@ class Minesweeper3DGrid:
     def reveal_cube(self, idx, canvas3d):
         """Reveal the cube with index idx and redraw the canvas."""
         revealed = self._revealed_by_slice.setdefault(self.primary_index, set())
+        flagged = self._flagged_by_slice.setdefault(self.primary_index, set())
+        # Do not reveal flagged cubes
+        if idx in flagged:
+            return False
         if idx in revealed:
             return False
         revealed.add(idx)
@@ -214,6 +228,22 @@ class Minesweeper3DGrid:
             pass
         canvas3d.draw()
         print(f"Revealed cube at index: {idx}")
+        return True
+
+    def toggle_flag(self, idx, canvas3d):
+        """Toggle flagged state for the given cube in the current tensor slice."""
+        # Can't flag revealed cubes
+        revealed = self._revealed_by_slice.setdefault(self.primary_index, set())
+        if idx in revealed:
+            return False
+        flagged = self._flagged_by_slice.setdefault(self.primary_index, set())
+        if idx in flagged:
+            flagged.remove(idx)
+            print(f"Unflagged cube at index: {idx} (slice {self.primary_index})")
+        else:
+            flagged.add(idx)
+            print(f"Flagged cube at index: {idx} (slice {self.primary_index})")
+        canvas3d.draw()
         return True
 
 class Interactive3DCanvas:
@@ -250,6 +280,7 @@ class Interactive3DCanvas:
         # Bindings
         self.canvas.bind("<Configure>", self._on_resize)
         self.canvas.bind("<ButtonPress-1>", self._on_press)
+        self.canvas.bind("<ButtonPress-3>", self._on_right_click)
         self.canvas.bind("<B1-Motion>", self._on_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_release)
         self.canvas.bind("<MouseWheel>", self._on_wheel)  # Windows/macOS
@@ -368,6 +399,19 @@ class Interactive3DCanvas:
         best = max(candidates, key=lambda p: p.get('avg_f', 0))
         chosen_idx = best['idx']
         self.grid.reveal_cube(chosen_idx, self)
+
+    def _on_right_click(self, event: tk.Event):
+        # Immediate flag toggle on right click
+        x, y = event.x, event.y
+        candidates = []
+        for pr in self._pick_regions:
+            if Minesweeper3DGrid._point_in_poly(x, y, pr['poly']):
+                candidates.append(pr)
+        if not candidates:
+            return
+        best = max(candidates, key=lambda p: p.get('avg_f', 0))
+        chosen_idx = best['idx']
+        self.grid.toggle_flag(chosen_idx, self)
 
 def gameWindowHandler(parent: tk.Widget, width: int | None = None, height: int | None = None) -> Interactive3DCanvas:
     """Create and attach the interactive 3D canvas to the given parent."""
