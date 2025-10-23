@@ -1,12 +1,16 @@
+
 import random
 from typing import Any, List, Sequence, Tuple
-
-# Set a predefined seed for reproducibility
-random.seed(98734987344567)
+from assets import VAR
 
 class Tensor:
     """Creates rank-N tensors as nested Python lists upon instantiation."""
     def __init__(self, rank, size, bombs=1):
+        # Seed RNG from current global VAR to allow reproducible or random boards
+        try:
+            random.seed(getattr(VAR, 'SEED', 98734987344567))
+        except Exception:
+            random.seed(98734987344567)
         self.rank = rank
         self.size = size
         self.bomb = bombs  # Adjust bomb count to match expected behavior

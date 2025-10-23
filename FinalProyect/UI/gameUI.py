@@ -429,6 +429,24 @@ class Interactive3DCanvas:
         self._animate = True
         self._schedule_animation()
 
+    def new_game(self, size: int | None = None, bombs: int | None = None):
+        """Rebuild the tensor and grid using current globals. Optional size/bombs override VAR first."""
+        from assets import VAR
+        if size is not None:
+            VAR.SIZE = size
+        if bombs is not None:
+            VAR.BOMBS = bombs
+
+        # Recreate tensor with current VAR settings (includes seeding)
+        th = TensorHandling()
+        solved = th.solve
+
+        # Recreate grid and reset state
+        self.grid = Minesweeper3DGrid(VAR.SIZE, VAR.SIZE, VAR.SIZE, spacing=0.3, solved_tensor=solved)
+        self._pick_regions = []
+        self._on_resize()
+        self.draw()
+
     # --------------------------- Public API ---------------------------
     def rotate_tensor_index(self):
         """Advance the primary tensor index a -> (a+1) mod N and redraw."""
