@@ -1,6 +1,9 @@
 import random
 from typing import Any, List, Sequence, Tuple
 
+# Set a predefined seed for reproducibility
+random.seed(98734987344567)
+
 class Tensor:
     """Creates rank-N tensors as nested Python lists upon instantiation."""
     def __init__(self, rank, size, bombs=1):
@@ -65,4 +68,3 @@ class TensorPrinter:
                 )
                 print(line)
             print("-" * (len(header) + width * len(block) * len(block[0])))
-            

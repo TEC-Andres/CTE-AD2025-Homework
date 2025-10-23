@@ -1,8 +1,6 @@
 import math
-import tkinter as tk
 from math import hypot
-
-from numpy import var
+import tkinter as tk
 from lib.tensor import Tensor
 from lib.bombOperator import BombOperator
 from assets import VAR
@@ -12,8 +10,10 @@ class TensorHandling:
     A placeholder class to represent connections to the Tensor functionality.
     """
     def __init__(self):
+        self.op = BombOperator()
         self.tensor = Tensor(rank=VAR.RANK, size=VAR.SIZE, bombs=VAR.BOMBS)
-        self.solve = BombOperator(self.tensor)
+        self.solve = self.op.apply(self.tensor.data)
+
         print(f"Initialized Tensor of rank {VAR.RANK}, size {VAR.SIZE}, with {VAR.BOMBS} bombs.")
 
 class Minesweeper3DGrid:
@@ -21,14 +21,17 @@ class Minesweeper3DGrid:
     Represents a 3D grid of cubes for the 4D Minesweeper game.
     Each cube corresponds to a cell in the 4D grid projected into 3D space.
     """
-    def __init__(self, i, j, k, spacing=10):
+    def __init__(self, i, j, k, spacing=10, solved_tensor=None):
         self.i = i
         self.j = j
         self.k = k
         self.spacing = spacing
-
-        # Track revealed cubes as a set of indices
-        self._revealed = set()
+        # Solved tensor (rank-4) nested list of ints. Expected index order: [a][b][c][d]
+        # We'll fix a=0 for the 3D view and map (x,y,z) -> (b,c,d)
+        self.solved_tensor = solved_tensor
+        self.primary_index = 0  # corresponds to first dimension: T[a][x][y][z]
+        # Track revealed cubes per tensor slice a: {a: set(idx)}
+        self._revealed_by_slice = {}
 
         # Generate grid of cube centers
         offset_x = (i - 1) * spacing / 2
@@ -36,6 +39,7 @@ class Minesweeper3DGrid:
         offset_z = (k - 1) * spacing / 2
 
         self.cube_centers = []
+        self.cube_indices = []  # (x, y, z) per cube
         for x in range(i):
             for y in range(j):
                 for z in range(k):
@@ -43,6 +47,7 @@ class Minesweeper3DGrid:
                     cy = y * spacing - offset_y
                     cz = z * spacing - offset_z
                     self.cube_centers.append((cx, cy, cz))
+                    self.cube_indices.append((x, y, z))
 
         # Each small cube's vertices (relative to center)
         s = spacing / 2 * 0.8
@@ -105,13 +110,25 @@ class Minesweeper3DGrid:
     def draw_on_canvas(self, canvas3d):
         """Draw all cubes in the grid as solid (filled) cubes. Revealed cubes are not drawn."""
         # The Interactive3DCanvas maintains canvas3d._pick_regions.
+        revealed_set = self._revealed_by_slice.get(self.primary_index, set())
         for idx, center in enumerate(self.cube_centers):
-            is_revealed = idx in self._revealed
+            is_revealed = idx in revealed_set
             self._draw_single_cube(canvas3d, idx, center, is_revealed)
 
     def _draw_single_cube(self, canvas3d, idx, center, is_revealed):
-        # If revealed, skip drawing the cube at all (it disappears).
+        # If revealed, draw only value text and skip faces
         if is_revealed:
+            tv_center = canvas3d._rotate(center)
+            px, py = canvas3d._project(tv_center)
+            value = self._get_value_for_cube(idx)
+            text = canvas3d.canvas.create_text(
+                px, py,
+                text=str(value),
+                fill="#ffffff",
+                font=("Segoe UI", 10, "bold")
+            )
+            # Lower so it doesn't block clicks to cubes behind
+            canvas3d.canvas.tag_lower(text)
             return
 
         # Transform vertices to world position
@@ -161,11 +178,40 @@ class Minesweeper3DGrid:
             'avg_f': avg_f,
         })
 
+    def _get_value_for_cube(self, idx: int) -> int:
+        """Get solved tensor value for cube at idx using mapping tensor[a][x][y][z]."""
+        if self.solved_tensor is None:
+            return 0
+        x, y, z = self.cube_indices[idx]
+        try:
+            a = self.primary_index
+            return int(self.solved_tensor[a][x][y][z])
+        except Exception:
+            return 0
+
+    def set_primary_index(self, a: int):
+        if self.solved_tensor is None:
+            self.primary_index = 0
+            return
+        size_a = len(self.solved_tensor)
+        if size_a <= 0:
+            self.primary_index = 0
+            return
+        self.primary_index = max(0, min(a, size_a - 1))
+
     def reveal_cube(self, idx, canvas3d):
         """Reveal the cube with index idx and redraw the canvas."""
-        if idx in self._revealed:
+        revealed = self._revealed_by_slice.setdefault(self.primary_index, set())
+        if idx in revealed:
             return False
-        self._revealed.add(idx)
+        revealed.add(idx)
+        # Debug/info: report tensor position and value
+        try:
+            x, y, z = self.cube_indices[idx]
+            val = self._get_value_for_cube(idx)
+            print(f"Reveal -> Tensor[{self.primary_index}][{x}][{y}][{z}] = {val}")
+        except Exception:
+            pass
         canvas3d.draw()
         print(f"Revealed cube at index: {idx}")
         return True
@@ -193,8 +239,10 @@ class Interactive3DCanvas:
         self._last = (0, 0)
         self._press_pos = (0, 0)
 
-        # Create 3D grid
-        self.grid = Minesweeper3DGrid(VAR.SIZE, VAR.SIZE, VAR.SIZE, spacing=0.3)
+        # Prepare solved tensor and create 3D grid
+        th = TensorHandling()
+        solved = th.solve
+        self.grid = Minesweeper3DGrid(VAR.SIZE, VAR.SIZE, VAR.SIZE, spacing=0.3, solved_tensor=solved)
 
         # Pick regions populated each frame: list of dicts {idx, poly, avg_f, ...}
         self._pick_regions = []
@@ -215,6 +263,19 @@ class Interactive3DCanvas:
         # Gentle idle animation
         self._animate = True
         self._schedule_animation()
+
+    # --------------------------- Public API ---------------------------
+    def rotate_tensor_index(self):
+        """Advance the primary tensor index a -> (a+1) mod N and redraw."""
+        if self.grid.solved_tensor is None:
+            return 0
+        n = len(self.grid.solved_tensor)
+        self.grid.set_primary_index((self.grid.primary_index + 1) % n)
+        self.draw()
+        return self.grid.primary_index
+
+    def get_tensor_index(self) -> int:
+        return getattr(self.grid, 'primary_index', 0)
 
     # ---------------------------- Interaction ----------------------------
     def _on_resize(self, event: tk.Event | None = None):
