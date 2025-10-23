@@ -1,5 +1,8 @@
-from bombOperator import BombOperator
-from tensor import Tensor, TensorPrinter
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from lib.bombOperator import BombOperator
+from lib.tensor import Tensor, TensorPrinter
 
 if __name__ == "__main__":
     tensor = Tensor(rank=4, size=3)

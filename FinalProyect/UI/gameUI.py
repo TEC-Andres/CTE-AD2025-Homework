@@ -1,8 +1,7 @@
 import math
 from math import hypot
 import tkinter as tk
-from lib.tensor import Tensor
-from lib.bombOperator import BombOperator
+from lib import BombOperator, Tensor, BoundaryOperator
 from assets import VAR
 
 class TensorHandling:
@@ -26,7 +25,6 @@ class Minesweeper3DGrid:
         self.j = j
         self.k = k
         self.spacing = spacing
-        # Solved tensor (rank-4) nested list of ints. Expected index order: [a][b][c][d]
         # We'll fix a=0 for the 3D view and map (x,y,z) -> (b,c,d)
         self.solved_tensor = solved_tensor
         self.primary_index = 0  # corresponds to first dimension: T[a][x][y][z]
@@ -34,6 +32,8 @@ class Minesweeper3DGrid:
         self._revealed_by_slice = {}
         # Track flagged cubes per tensor slice a: {a: set(idx)}
         self._flagged_by_slice = {}
+        # Boundary operator for zero-region reveals
+        self._boundary_op = BoundaryOperator()
 
         # Generate grid of cube centers
         offset_x = (i - 1) * spacing / 2
@@ -41,7 +41,7 @@ class Minesweeper3DGrid:
         offset_z = (k - 1) * spacing / 2
 
         self.cube_centers = []
-        self.cube_indices = []  # (x, y, z) per cube
+        self.cube_indices = []
         for x in range(i):
             for y in range(j):
                 for z in range(k):
@@ -50,6 +50,9 @@ class Minesweeper3DGrid:
                     cz = z * spacing - offset_z
                     self.cube_centers.append((cx, cy, cz))
                     self.cube_indices.append((x, y, z))
+
+        # Fast coord->idx mapping for region reveals
+        self._coord_to_idx = {coord: idx for idx, coord in enumerate(self.cube_indices)}
 
         # Each small cube's vertices (relative to center)
         s = spacing / 2 * 0.8
@@ -199,6 +202,19 @@ class Minesweeper3DGrid:
         except Exception:
             return 0
 
+    def _get_value_at(self, a: int, coord3: tuple[int, int, int]) -> int:
+        if self.solved_tensor is None:
+            return 0
+        x, y, z = coord3
+        try:
+            return int(self.solved_tensor[a][x][y][z])
+        except Exception:
+            return 0
+
+    def _is_bomb(self, val: int) -> bool:
+        # In this project bombs are marked as value 100 in the tensor
+        return val >= 100
+
     def set_primary_index(self, a: int):
         if self.solved_tensor is None:
             self.primary_index = 0
@@ -229,6 +245,65 @@ class Minesweeper3DGrid:
         canvas3d.draw()
         print(f"Revealed cube at index: {idx}")
         return True
+
+    def reveal_zero_region_from(self, idx: int, canvas3d) -> int:
+        """Reveal the contiguous zero region (and its numeric boundary) starting from idx."""
+        a = self.primary_index
+        start_coord = self.cube_indices[idx]
+        zeros, boundary = self._boundary_op.compute_zero_region(self.solved_tensor, a, start_coord)
+        # Filter: never reveal bombs in boundary
+        filtered_boundary = {c for c in boundary if not self._is_bomb(self._get_value_at(a, c))}
+        to_reveal_coords = zeros | filtered_boundary
+
+        revealed = self._revealed_by_slice.setdefault(a, set())
+        flagged = self._flagged_by_slice.setdefault(a, set())
+
+        revealed_count = 0
+        for coord in to_reveal_coords:
+            ridx = self._coord_to_idx.get(coord)
+            if ridx is None:
+                continue
+            if ridx in flagged or ridx in revealed:
+                continue
+            revealed.add(ridx)
+            revealed_count += 1
+
+        if revealed_count > 0:
+            canvas3d.draw()
+        print(f"Region reveal starting at {start_coord}: zeros={len(zeros)} boundary={len(boundary)} total={revealed_count}")
+        return revealed_count
+
+    def reveal_zero_region_all_from(self, idx: int, canvas3d) -> int:
+        """Reveal the contiguous zero region across the entire tensor (all 'a' slices)."""
+        a0 = self.primary_index
+        start3 = self.cube_indices[idx]
+        start_nd = (a0, *start3)
+        zerosN, boundaryN = self._boundary_op.compute_zero_region_all(self.solved_tensor, start_nd)
+
+        # Partition by 'a' and filter bombs from boundary
+        revealed_total = 0
+        for coord in zerosN | boundaryN:
+            if len(coord) != 4:
+                continue
+            a, x, y, z = coord
+            val = self._get_value_at(a, (x, y, z))
+            # Reveal zeros and numeric boundary only (exclude bombs)
+            if val != 0 and self._is_bomb(val):
+                continue
+            ridx = self._coord_to_idx.get((x, y, z))
+            if ridx is None:
+                continue
+            revealed = self._revealed_by_slice.setdefault(a, set())
+            flagged = self._flagged_by_slice.setdefault(a, set())
+            if ridx in flagged or ridx in revealed:
+                continue
+            revealed.add(ridx)
+            revealed_total += 1
+
+        if revealed_total > 0:
+            canvas3d.draw()
+        print(f"ND region reveal from {start_nd}: zeros={len(zerosN)} boundary={len(boundaryN)} total={revealed_total}")
+        return revealed_total
 
     def toggle_flag(self, idx, canvas3d):
         """Toggle flagged state for the given cube in the current tensor slice."""
@@ -398,7 +473,15 @@ class Interactive3DCanvas:
         # Choose the candidate with maximum avg_f (closest to camera roughly)
         best = max(candidates, key=lambda p: p.get('avg_f', 0))
         chosen_idx = best['idx']
-        self.grid.reveal_cube(chosen_idx, self)
+        # If it's a zero, reveal the whole zero-region across all slices; else reveal single
+        val = self.grid._get_value_for_cube(chosen_idx)
+        if val == 0:
+            # Reveal region across all dimensions
+            revealed = self.grid.reveal_zero_region_all_from(chosen_idx, self)
+            if revealed == 0:
+                self.grid.reveal_cube(chosen_idx, self)
+        else:
+            self.grid.reveal_cube(chosen_idx, self)
 
     def _on_right_click(self, event: tk.Event):
         # Immediate flag toggle on right click

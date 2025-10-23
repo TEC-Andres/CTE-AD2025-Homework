@@ -3,7 +3,7 @@ import tkinter.ttk as ttk
 from assets import * 
 from lib import *
 from UI.gameUI import gameWindowHandler
-from UI.sidebar_controls import SidebarControls
+from UI.sidebar import SidebarControls
 
 class App:
     def __init__(self, root):
@@ -28,12 +28,8 @@ class App:
         # Pseudowindow (game area)
         self.game_area = ttk.Frame(self.root)
         self.game_area.grid(row=0, column=0, sticky="nsew")
-
-        # Sidebar (controls / future UI)
         self.sidebar = ttk.Frame(self.root)
         self.sidebar.grid(row=0, column=1, sticky="nsew")
-
-        # Game view
         self.game_view = gameWindowHandler(self.game_area)
 
         # Sidebar controls hooked to the game view

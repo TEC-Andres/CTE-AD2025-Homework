@@ -1,4 +1,4 @@
 class GlobalVars:
-    SIZE = 3
+    SIZE = 4
     RANK = 4
-    BOMBS = 5
+    BOMBS = 9
