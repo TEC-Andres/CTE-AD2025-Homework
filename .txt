@@ -1,0 +1,29 @@
+Initialize variables:
+    i = 1
+    x[1] = 0
+    y[1] = 0
+    vx[1] = initial_velocity * cos(angle_in_radians)
+    vy[1] = initial_velocity * sin(angle_in_radians)
+    max_iterations = 100000
+
+Loop while y[i] >= 0 and i < max_iterations:
+    Calculate v_actual = sqrt(vx[i]^2 + vy[i]^2)
+    Calculate drag_force = 0.5 * air_density * v_actual^2 * drag_coefficient * cross_sectional_area
+
+    Calculate ax = -(drag_force / mass) * (vx[i] / v_actual)
+    Calculate ay = -gravity - (drag_force / mass) * (vy[i] / v_actual)
+
+    Update velocities:
+        vx[i+1] = vx[i] + ax * time_step
+        vy[i+1] = vy[i] + ay * time_step
+
+    Update positions:
+        x[i+1] = x[i] + vx[i] * time_step
+        y[i+1] = y[i] + vy[i] * time_step
+
+    Increment i
+
+After loop:
+    t = 0 to (length(x)-1) * time_step, with step size time_step
+
+    

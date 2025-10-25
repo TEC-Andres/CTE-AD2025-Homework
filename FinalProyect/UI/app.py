@@ -4,7 +4,7 @@ from assets import *
 from lib import *
 from UI.gameUI import gameWindowHandler
 from UI.sidebar import SidebarControls
-from assets._globalVariables import GlobalVars
+from assets import var
 import random
 
 class App:
@@ -54,11 +54,11 @@ class App:
         )
         menu_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        label = ttk.Label(menu_frame, text="Choose Board Size:", font=("Arial", 16))
+        label = ttk.Label(menu_frame, text="Choose Board size:", font=("Arial", 16))
         label.pack(pady=(0, 15))
 
-        # Seed entry
-        seed_label = ttk.Label(menu_frame, text="Seed (optional):", font=("Arial", 12))
+        # seed entry
+        seed_label = ttk.Label(menu_frame, text="seed (optional):", font=("Arial", 12))
         seed_label.pack(pady=(0, 5))
         seed_var = tk.StringVar()
         seed_entry = ttk.Entry(menu_frame, textvariable=seed_var)
@@ -67,20 +67,19 @@ class App:
         def start_game(size):
             # Destroy the pseudowindow
             overlay.destroy()
-            # Set bomb count, size, and seed in VAR (the singleton used by the game)
-            from assets import VAR
-            VAR.SIZE = size
-            VAR.BOMBS = {3: 5, 4: 10, 5: 15}.get(size, 0)
+            # Set bomb count, size, and seed in var (the singleton used by the game)
+            var.size = size
+            var.bombs = {3: 5, 4: 10, 5: 15}.get(size, 0)
             user_seed = seed_var.get()
             if user_seed.strip() == "":
-                VAR.SEED = random.randint(0, 2**32 - 1)
+                var.seed = random.randint(0, 2**32 - 1)
             else:
                 try:
-                    VAR.SEED = int(user_seed)
+                    var.seed = int(user_seed)
                 except ValueError:
-                    VAR.SEED = hash(user_seed)
+                    var.seed = hash(user_seed)
             # Restart the game with new parameters
-            self.game_view.new_game(size, VAR.BOMBS)
+            self.game_view.new_game(size, var.bombs)
 
         # Buttons
         for size in [3, 4, 5]:

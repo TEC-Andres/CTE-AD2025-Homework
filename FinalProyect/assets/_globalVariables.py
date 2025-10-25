@@ -1,5 +1,5 @@
 class GlobalVars:
-    SIZE = 4
-    RANK = 4
-    BOMBS = 10
-    SEED = 98734987344567  # Default seed
+    size = 4
+    rank = 4
+    bombs = 10
+    seed = 98734987344567  # Default seed
